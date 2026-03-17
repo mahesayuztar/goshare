@@ -9,6 +9,10 @@ import (
 )
 
 func main() {
+	fmt.Println("HOST:", os.Getenv("MYSQLHOST"))
+	fmt.Println("PORT:", os.Getenv("MYSQLPORT"))
+	fmt.Println("USER:", os.Getenv("MYSQLUSER"))
+	fmt.Println("DB:", os.Getenv("MYSQLDATABASE"))
 	controllers.DB = controllers.Connect()
 	fmt.Println("Database Goshare connected")
 
