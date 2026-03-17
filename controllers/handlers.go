@@ -58,6 +58,7 @@ func DownloadHandler(w http.ResponseWriter, r *http.Request) {
 		TmpPtr.ExecuteTemplate(w, "index.html", err.Error())
 		return
 	}
+
 	TmpPtr.ExecuteTemplate(w, "success.html", map[string]string{
 		"Download": id,
 	})

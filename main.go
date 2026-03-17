@@ -5,6 +5,7 @@ import (
 	"goshare/controllers"
 	"html/template"
 	"net/http"
+	"os"
 )
 
 func main() {
@@ -16,5 +17,11 @@ func main() {
 	http.HandleFunc("/submit", controllers.SubmitHandler)
 	http.HandleFunc("/download/", controllers.DownloadHandler)
 	// http.HandleFunc("/file/", handlers.DownloadHandler(fileService))
-	http.ListenAndServe(":8080", nil)
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	http.ListenAndServe(":"+port, nil)
 }
