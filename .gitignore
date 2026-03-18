@@ -28,6 +28,6 @@ go.work.sum
 .env
 
 # Editor/IDE
-uploads/
+uploads/*
 # .idea/
 # .vscode/
