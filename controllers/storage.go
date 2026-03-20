@@ -3,14 +3,17 @@ package controllers
 import (
 	"errors"
 	"io"
-	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
 )
 
-func SaveFile(file multipart.File, fileHeader *multipart.FileHeader) (string, string, error) {
+func SaveFile(r *http.Request) (string, string, error) {
+	file, fileHeader, err := r.FormFile("file")
+	if err != nil {
+		return "", "", err
+	}
 	defer file.Close()
 	filename := filepath.Base(fileHeader.Filename)
 	jktLocation, _ := time.LoadLocation("Asia/Jakarta")

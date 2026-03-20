@@ -6,26 +6,25 @@ import (
 	"html/template"
 	"net/http"
 	"os"
+
+	"github.com/gorilla/mux"
 )
 
 func main() {
-	fmt.Println("HOST:", os.Getenv("MYSQLHOST"))
-	fmt.Println("PORT:", os.Getenv("MYSQLPORT"))
-	fmt.Println("USER:", os.Getenv("MYSQLUSER"))
-	fmt.Println("DB:", os.Getenv("MYSQLDATABASE"))
 	controllers.DB = controllers.Connect()
 	fmt.Println("Database Goshare connected")
 
 	controllers.TmpPtr, _ = template.ParseGlob("templates/*.html")
-	http.HandleFunc("/", controllers.HomeHandler)
-	http.HandleFunc("/submit", controllers.SubmitHandler)
-	http.HandleFunc("/download/", controllers.DownloadHandler)
-	// http.HandleFunc("/file/", handlers.DownloadHandler(fileService))
+
+	router := mux.NewRouter()
+	router.HandleFunc("/", controllers.HomeHandler)
+	router.HandleFunc("/files", controllers.CreateFileHandler).Methods("POST")
+	router.HandleFunc("/files/{id}", controllers.GetFileHandler).Methods("GET")
 
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	http.ListenAndServe(":"+port, nil)
+	http.ListenAndServe(":"+port, router)
 }

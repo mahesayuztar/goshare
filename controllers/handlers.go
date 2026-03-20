@@ -1,65 +1,98 @@
 package controllers
 
 import (
+	"encoding/json"
 	"fmt"
-	"html"
+	"goshare/models"
 	"html/template"
 	"net/http"
 	"strings"
+
+	"github.com/gorilla/mux"
 )
 
 var TmpPtr *template.Template
+
+type APIResponse struct {
+	Status string `json:"status"`
+	Error  string `json:"error"`
+}
+
+func InternalServerErrorHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusInternalServerError)
+	w.Write([]byte("500 Internal Server Error"))
+}
+
+func NotFoundHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotFound)
+	w.Write([]byte("404 Not Found"))
+}
 
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	TmpPtr.ExecuteTemplate(w, "index.html", nil)
 }
 
-func SubmitHandler(w http.ResponseWriter, r *http.Request) {
-	r.ParseMultipartForm(32 << 20)
-	url := r.FormValue("url")
-	fmt.Println("URL:", url)
-	_, fileHeader, _ := r.FormFile("file")
-	if len(url) > 192 {
-		TmpPtr.ExecuteTemplate(w, "index.html", map[string]string{
-			"Error": "URL terlalu panjang, maksimal 192 karakter",
-		})
-		return
-	}
-	if fileHeader.Size > 10*1024*1024 {
-		TmpPtr.ExecuteTemplate(w, "index.html", map[string]string{
-			"Error": "Ukuran file terlalu besar, maksimal 10MB",
+func CreateFileHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	r.ParseMultipartForm(5 << 20)
+
+	fileName, filePath, err := SaveFile(r)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(APIResponse{
+			Status: "fail",
+			Error:  "Gagal menyimpan file: " + err.Error(),
 		})
 		return
 	}
 
-	insertErr := InsertFile(r)
-	if insertErr != nil {
-		TmpPtr.ExecuteTemplate(w, "index.html", map[string]string{
-			"Error": "Gagal Upload File: " + html.UnescapeString(insertErr.Error()),
+	file := &models.File{
+		ID:       r.FormValue("url"),
+		FileName: fileName,
+		FilePath: filePath,
+	}
+
+	if err := CreateFile(file); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(APIResponse{
+			Status: "fail",
+			Error:  "Gagal menyimpan file: " + err.Error(),
 		})
 		return
 	}
-
-	TmpPtr.ExecuteTemplate(w, "success.html", map[string]string{
-		"FileID": url,
+	json.NewEncoder(w).Encode(APIResponse{
+		Status: "success",
 	})
 }
 
-func DownloadHandler(w http.ResponseWriter, r *http.Request) {
-	id := strings.TrimPrefix(r.URL.Path, "/download/")
+func GetFileHandler(w http.ResponseWriter, r *http.Request) {
+	id := mux.Vars(r)["id"]
+	id = strings.TrimSpace(id)
 	fmt.Println("Download request for ID:", id)
+
 	row, err := GetFileByID(id)
 	if err != nil {
-		TmpPtr.ExecuteTemplate(w, "index.html", err.Error())
-		return
-	}
-	err = DownloadFile(w, row.FilePath, row.FileName)
-	if err != nil {
-		TmpPtr.ExecuteTemplate(w, "index.html", err.Error())
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(APIResponse{
+			Status: "fail",
+			Error:  "File tidak ditemukan",
+		})
 		return
 	}
 
-	TmpPtr.ExecuteTemplate(w, "success.html", map[string]string{
-		"Download": id,
+	err = DownloadFile(w, row.FilePath, row.FileName)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(APIResponse{
+			Status: "fail",
+			Error:  "Gagal mengunduh file: " + err.Error(),
+		})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(APIResponse{
+		Status: "success",
 	})
 }

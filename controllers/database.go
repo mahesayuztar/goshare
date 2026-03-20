@@ -1,10 +1,12 @@
 package controllers
 
 import (
+	"fmt"
 	"goshare/models"
 	"log"
 	"os"
 
+	"github.com/joho/godotenv"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -19,6 +21,9 @@ func Connect() *gorm.DB {
 		}
 	}()
 
+	if err := godotenv.Load(); err != nil {
+		fmt.Println("No .env file found, using server variables")
+	}
 	host := os.Getenv("MYSQLHOST")
 	port := os.Getenv("MYSQLPORT")
 	user := os.Getenv("MYSQLUSER")

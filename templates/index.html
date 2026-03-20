@@ -8,16 +8,16 @@
 </head>
 <body>
     <div class="d-flex flex-column form-control align-items-center w-100">
-        <form enctype="multipart/form-data" action="/submit" method="post">
+        <form enctype="multipart/form-data" id="form">
             <div class="d-flex flex-row">
                 <div class="d-flex flex-column align-items-start">
                     <label for="url" class="form-label">URL:</label>
                     <div class="d-flex flex-row align-items-start gap-1">
                         <p>goshare.com/</p>
-                        <input type="text" id="url" name="url" class="form-control w-100" required>
+                        <input type="text" id="url" name="url" class="form-control w-100">
                     </div>
                     <label for="file" class="form-label">Upload File:</label>
-                    <input type="file" id="file" name="file" class="form-control w-100" required>
+                    <input type="file" id="file" name="file" class="form-control w-100">
                     {{if .Error}}
                     <div class="alert alert-danger mt-2" role="alert">
                         {{.Error}}
@@ -29,4 +29,55 @@
         </form>
     </div>
 </body> 
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script>
+    $(document).ready(function(){
+        $("#form").submit(function(e){
+            e.preventDefault();
+            let formData = new FormData();
+            formData.append("url", $("#url").val());
+            formData.append("file", $("#file")[0].files[0]);
+            if (!$("#url").val()) {
+                alert("Mohon untuk mengisi URL");
+                return;
+            }
+            if ($("#url").val().length > 192) {
+                alert("URL tidak boleh lebih dari 192 karakter");
+                return;
+            }
+            if (!$("#file")[0].files[0]) {
+                alert("Mohon untuk memilih file yang akan diupload");
+                return;
+            }
+            if ($("#file")[0].files[0].size > 10 * 1024 * 1024) {
+                alert("Ukuran file tidak boleh lebih dari 10MB");
+                return;
+            }
+            $.ajax({
+                url: "/files",
+                type: "POST",
+                data: formData,
+                processData: false,
+                contentType: false,
+                beforeSend: function() {
+                    $('#btnSubmit').prop('disabled', true).text('Sedang Mengirim...');
+                },
+                success: function(response) {
+                    alert("File berhasil diupload!");
+                    $("#form")[0].reset();
+                },
+                error: function(xhr) {
+                    let error = "Terjadi kesalahan server. Silakan coba lagi nanti."; 
+                    if (xhr.responseJSON?.error){
+                        error = xhr.responseJSON.error;
+                    }
+                    alert("Terjadi kesalahan saat mengupload file: " + error);
+                },
+                complete: function() {
+                    $('#btnSubmit').prop('disabled', false).text('Submit');
+                }
+            });
+        });
+    });
+</script>
 </html>
